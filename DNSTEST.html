@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Speed Test Benchmark - Find the Fastest DNS Server for Your Location</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        
+        .glow-button {
+            background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .glow-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.6);
+        }
+        
+        .dns-card {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 12px;
+            border-left: 4px solid #8b5cf6;
+            transition: all 0.2s ease;
+            margin: 0;
+            padding: 0;
+            display: inline-block;
+            width: 100%;
+        }
+
+
+        
+        .dns-card:hover {
+            background: rgba(30, 41, 59, 0.9);
+            transform: translateX(5px);
+        }
+        
+        .dns-card.fastest {
+            border-left: 4px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6); }
+            70% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(139, 92, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: #8b5cf6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(94, 234, 212, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-value {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .host-item {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .host-item:hover {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: rgba(94, 234, 212, 0.3);
+        }
+        
+        .dns-info-popup {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 10;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            width: 280px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .dns-address {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .dns-address:hover {
+            background: rgba(15, 23, 42, 0.9);
+            transform: translateX(3px);
+        }
+        
+        .dns-address:last-child {
+            margin-bottom: 0;
+        }
+        
+        .dns-type {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-right: 10px;
+            min-width: 60px;
+        }
+        
+        .dns-value {
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .copy-icon {
+            color: #8b5cf6;
+            margin-left: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-icon:hover {
+            color: #6366f1;
+            transform: scale(1.1);
+        }
+        
+        .copy-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            animation: fadeInOut 2s ease;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; bottom: 0; }
+            10%, 90% { opacity: 1; bottom: 20px; }
+        }
+        
+        .result-entry {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .dns-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="pt-16 pb-10 px-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold mb-3">
+                <span class="gradient-text">DNS Speed Test Benchmark</span> - Find the Fastest DNS Server for Your Location
+            </h1>
+            <p class="text-lg text-slate-300 max-w-2xl mx-auto">
+                Optimize your internet experience by finding the fastest DNS server for your location.
+                Results update in real-time as the test progresses.
+            </p>
+        </header>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Control Panel -->
+            <div class="card p-6 lg:col-span-1">
+                <div class="text-center mb-8">
+                    <div class="inline-block p-4 rounded-full bg-slate-800 mb-4">
+                        <i class="fas fa-server text-4xl text-indigo-500"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">Test Configuration</h2>
+                    <p class="text-slate-400">Customize your DNS speed test</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-slate-300 mb-2">Number of Tests</label>
+                        <div class="flex items-center gap-3">
+                            <button id="decreaseTests" class="bg-slate-700 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-600 transition-colors">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span id="testCount" class="text-xl font-medium">1</span>
+                            <button id="increaseTests" class="bg-slate-700 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-600 transition-colors">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-slate-300 mb-2">Hostnames to Test</label>
+                        <button id="editHosts" class="w-full bg-slate-800 py-3 px-4 rounded-lg flex items-center justify-between hover:bg-slate-700 transition-colors">
+                            <span>Manage Hostnames</span>
+                            <i class="fas fa-edit text-indigo-500"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="pt-4">
+                        <button id="startTest" class="glow-button w-full py-4 rounded-xl font-bold text-lg pulse">
+                            <i class="fas fa-bolt mr-2"></i> Start DNS Test
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="progressContainer" class="mt-8 hidden">
+                    <div class="flex justify-between text-sm text-slate-400 mb-2">
+                        <span>Test Progress</span>
+                        <span id="progressText">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progressValue" class="progress-value" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+  
+            <!-- Results Panel -->
+            <div class="card p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Test Results</h2>
+                    <div id="resultsSummary" class="text-slate-400 text-sm"></div>
+                </div>
+                
+                <div id="loadingIndicator" class="hidden flex-col items-center justify-center py-6">
+                    <div class="spinner mb-4"></div>
+                    <p class="text-lg">Testing DNS servers...</p>
+                <div id="realtimeResults" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
+                      <div id="realtimePlaceholder" class="text-center py-10 text-slate-500">
+                <i class="fas fa-chart-line text-4xl mb-4"></i>
+                <p>Test results will appear here in real-time as the test progresses</p>
+            </div>
+                    <p class="text-slate-400 mt-2" id="currentTest">Initializing test</p>
+                </div>
+                
+                <div id="resultsContainer" class="hidden">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold mb-4">Fastest DNS Server</h3>
+                        <div id="fastestServer" class="dns-card p-5 flex items-center">
+                            <i class="fas fa-crown text-2xl text-yellow-400 mr-4"></i>
+                            <div>
+                                <h4 class="font-bold text-lg" id="fastestName">-</h4>
+                                <p class="text-slate-400" id="fastestTime">- ms</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">All DNS Servers Click Name For All Address's</h3>
+                        <div id="dnsResults" class="space-y-3">
+                            <!-- DNS results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="resultsChart" class="mt-8 hidden">
+                    <canvas id="dnsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Real-time Results Section -->
+        <div class="card p-6 mt-8">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <i class="fas fa-sync-alt mr-3 text-indigo-500"></i>
+                Real-time Test Results
+            </h2>
+            <div id="realtimeContainer" class="hidden">
+                <div class="bg-slate-800 rounded-lg p-4 mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-slate-400" id="currentServerTest">Testing: Initializing...</span>
+                      <!--  <span class="text-slate-400" id="completedTests">0/0 tests completed</span>-->
+                    </div>
+                    <div class="progress-bar">
+                        <div id="realtimeProgress" class="progress-value" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div id="realtimeResults" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    <!-- Real-time results will be populated here -->
+                </div>
+            </div>
+            <div id="realtimePlaceholder" class="text-center py-10 text-slate-500">
+                <i class="fas fa-chart-line text-4xl mb-4"></i>
+                <p>Test results will appear here in real-time as the test progresses</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-slate-500 text-sm protect">
+<p>© 2025 <a href="https://azbrand.ca" target="_blank" rel="noopener noreferrer">AZBrand Canada</a> This is a client-side application - your data never leaves your browser.</p>
+
+            <p class="mt-2">Made with <i class="fas fa-heart text-red-500"></i> for a faster internet</p>
+        </footer>
+    </div>
+    
+    <!-- Hosts Modal -->
+    <div id="hostsModal" class="modal-overlay hidden">
+        <div class="modal-content card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Manage Hostnames</h2>
+                <button id="closeModal" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <p class="text-slate-400 mb-6">
+                Add or remove hostnames to test. These are the websites that will be used to measure DNS resolution speed.
+            </p>
+            
+            <div class="mb-6">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newHostname" placeholder="Add a new hostname (e.g., example.com)" class="flex-grow bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="addHost" class="bg-indigo-600 hover:bg-indigo-700 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div id="hostsList" class="max-h-60 overflow-y-auto pr-2">
+                    <!-- Hosts will be populated here -->
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <button id="resetHosts" class="flex-grow bg-slate-800 hover:bg-slate-700 py-3 rounded-lg transition-colors">
+                    Reset to Default
+                </button>
+                <button id="saveHosts" class="flex-grow bg-indigo-600 hover:bg-indigo-700 py-3 rounded-lg transition-colors">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+            
+        <!-- Info Section -->
+        <div class="card p-6 mt-8">
+            <h2 class="text-2xl font-bold mb-4">About DNS Speed Testing</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-800 p-5 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-indigo-900 flex items-center justify-center mb-4">
+                        <i class="fas fa-tachometer-alt text-indigo-400"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Why Test DNS Speed?</h3>
+                    <p class="text-slate-400">DNS resolution speed impacts how quickly websites load. A faster DNS can improve your overall browsing experience.</p>
+                </div>
+                <div class="bg-slate-800 p-5 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-indigo-900 flex items-center justify-center mb-4">
+                        <i class="fas fa-shield-alt text-indigo-400"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Privacy & Security</h3>
+                    <p class="text-slate-400">Some DNS providers offer enhanced security features like blocking malicious sites and phishing protection.</p>
+                </div>
+                <div class="bg-slate-800 p-5 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-indigo-900 flex items-center justify-center mb-4">
+                        <i class="fas fa-globe-americas text-indigo-400"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Geographic Relevance</h3>
+                    <p class="text-slate-400">The fastest DNS for you depends on your location. Test regularly as network conditions change.</p>
+                </div>
+            </div>
+        </div>
+
+    <!-- Copy Notification -->
+    <div id="copyNotification" class="copy-notification hidden">
+        <i class="fas fa-check-circle mr-2"></i> Copied to clipboard!
+    </div>
+    <script src="include.js"></script>
+</body>
+</html>
